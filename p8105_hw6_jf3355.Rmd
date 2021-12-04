@@ -115,4 +115,18 @@ weather_df =
     tmax = tmax / 10) %>%
   select(name, id, everything())
 ```
-
+#Boostraping
+```{r}
+set.seed(1)
+bootstrap_df = 
+  weather_df %>% 
+  bootstrap(n = 5000, id = "strap_number") %>% 
+  mutate(
+    linear_models = map(.x = strap, ~lm(tmax ~ tmin, data = .x)),
+    result_log = map(linear_models,broom::tidy),
+    result_r2 = map(linear_models,broom::glance)
+  ) %>% 
+  select(strap_number, result_log, result_r2) %>% 
+  unnest(result_log, result_r2)
+```
+#
