@@ -129,4 +129,51 @@ bootstrap_df =
   select(strap_number, result_log, result_r2) %>% 
   unnest(result_log, result_r2)
 ```
-#
+#Plot
+```{r}
+bootstrap_df %>% 
+  filter(term == "tmin") %>% 
+  ggplot(aes(x = r.squared))+geom_density()+labs(title = "Distribution of R Squared")
+```
+From the plot, we can see R squared is nearly normal distributed.The mean and median is `r mean(bootstrap_df$r.squared)` and `r median(bootstrap_df$r.squared)`, the standard error is `r sd(bootstrap_df$r.squared)`.
+
+#95% CI
+```{r}
+ci_r2 = 
+  bootstrap_df %>% 
+  summarise(
+  ci_lower = quantile(r.squared, 0.025),
+  ci_upper = quantile(r.squared, 0.975)
+  )
+ci_r2
+```
+The lower bond is 0.8936684, and the upper bond is 0.927106.
+
+#Plot and 95% CI of log(beta0*beta1)
+```{r}
+log_df = 
+  bootstrap_df %>% 
+  select(term, estimate) %>% 
+  mutate(
+    term = recode(term,`(Intercept)` = "beta0", "tmin" ="beta1")
+  ) %>% 
+  pivot_wider(
+    names_from = "term",
+    values_from = "estimate"
+  ) %>% 
+  unnest(beta0,beta1) %>%
+  mutate(log = log(beta0 * beta1))
+
+log_df %>% 
+  ggplot(aes(x = log))+geom_density()+labs(title = "Distribution of Log(beta0*beta1)")
+ci_log = 
+  log_df %>% 
+  summarise(
+    ci_lower = quantile(log, 0.025),
+    ci_upper = quantile(log, 0.975)
+  )
+ci_log
+```
+From the plot, we can see this is nearly normal distributed. The mean and median is `r mean(log_df$log)` and `r median(log_df$log)`, the standard error is `r sd(log_df$log)`. The 95% CI is (1.964949,2.058887		).
+
+
