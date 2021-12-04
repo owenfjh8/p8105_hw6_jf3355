@@ -4,3 +4,71 @@ author: "Jiahao Fan"
 date: "12/2/2021"
 output: github_document
 ---
+
+```{r}
+library(tidyverse)
+library(broom)
+library(knitr)
+library(modelr)
+```
+
+##Problem1
+#Load and clean the data for regression analysis
+```{r}
+birthweight =
+  read.csv("birthweight.csv") %>% 
+  skimr::skim() %>% 
+  select(skim_variable, n_missing) %>%
+  knitr::kable()
+birthweight  
+```
+There is no missing value.
+```{r}
+birthweight_df = 
+  read.csv("birthweight.csv") %>% 
+  mutate(
+    babysex = recode_factor(babysex, "1" = "male", "2" = "female"),
+    frace = recode_factor(frace, "1" = "White", "2" = "Black", "3" = "Asian", "4" = "Puerto Rican", "8" = "Other", "9" = "Unkown"),
+    mrace = recode_factor(mrace, "1" = "White", "2" = "Black", "3" = "Asian", "4" = "Puerto Rican", "8" = "Other"),
+    malform = recode_factor(malform, "0" = "absent", "1" = "present" )
+  )
+```
+
+#Propose a regression model for birthweight
+We need first find proper variable. after I run the linear regression with all variable, I choose the variables' p-value less than 0.05, which are `babysex`, `bhead`, `blength`, `delwt`, `fincome`, `gaweeks`, `mheight`, `ppwt`, `smoken` .
+```{r}
+fit = lm(bwt~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + ppwt + smoken, data =birthweight_df)
+fit %>% 
+  broom::tidy() %>% 
+  select(term,estimate,p.value) %>% 
+  knitr::kable()
+plot1 = 
+  birthweight_df %>% 
+  modelr::add_residuals(fit) %>% 
+  modelr::add_predictions(fit) %>% 
+  ggplot(aes(x = pred, y = resid))+ geom_point()+labs(title = "Plot of Model Residuals against Fitted Values", x = "Fitted Values",y = "Residuals")
+plot1
+```
+#Compare the model to two others.
+fit2: One using length at birth and gestational age as predictors (main effects only)
+fit3: One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+```{r}
+fit2 <- lm(bwt ~ blength + gaweeks, data = birthweight_df)
+fit3 <- lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + bhead*blength*babysex, data = birthweight_df)
+plot2 = 
+  birthweight_df %>% 
+  modelr::add_residuals(fit2) %>% 
+  modelr::add_predictions(fit2) %>% 
+  ggplot(aes(x = pred, y = resid))+ geom_point()+labs(title = "Plot2 of Model Residuals against Fitted Values", x = "Fitted Values",y = "Residuals")
+
+plot3 = 
+  birthweight_df %>% 
+  modelr::add_residuals(fit3) %>% 
+  modelr::add_predictions(fit3) %>% 
+  ggplot(aes(x = pred, y = resid))+ geom_point()+labs(title = "Plot3 of Model Residuals against Fitted Values", x = "Fitted Values",y = "Residuals")
+
+plot2
+plot3
+```
+
+
